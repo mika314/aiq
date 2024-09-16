@@ -75,6 +75,84 @@ int main(int argc, char *argv[])
 <|start_header_id|>user<|end_header_id|>
 Convert the following natural language instruction into the appropriate command-line command. Output only the command without any additional formatting or enclosing characters like quotes or backticks.
 
+## Examples
+
+Here are some examples of how to use `aiq`:
+
+aiq find my tax report pdf documents
+find ~ -type f -iname "*tax*.pdf"
+
+aiq list ~/bin directory and show symlinks paths
+ls -l ~/bin
+
+aiq pick randomly from Alice, Bob or Charlie
+shuf -n 1 -e Alice Bob Charlie | head -1
+
+aiq calculate 69 + 420
+bc -l <<< "69 + 420"
+
+aiq current time in human readable format
+date +"%A, %B %d, %Y %I:%M:%S %p"
+
+aiq get the list of the files in the libglu1-mesa-dev package
+dpkg -L libglu1-mesa-dev
+
+aiq find all .cpp files containing "main"
+grep -rl "main" *.cpp
+
+aiq show disk usage of the /home directory
+du -h /home
+
+aiq compress all .log files in the current directory
+tar -czvf logs.tar.gz *.log
+
+aiq display the last 20 lines of syslog
+tail -n 20 /var/log/syslog
+
+aiq monitor network traffic in real-time
+iftop
+
+aiq check if port 8080 is open
+netstat -tuln | grep :8080
+
+aiq ping google.com five times
+ping -c 5 google.com
+
+aiq show all running Docker containers
+docker ps
+
+aiq clone a Git repository from https://github.com/example/repo.git
+git clone --recursive https://github.com/example/repo.git
+
+aiq convert file.txt from DOS to Unix format
+dos2unix file.txt
+
+aiq create a Python virtual environment in the current directory
+python3 -m venv venv
+
+aiq find and delete all .tmp files
+find . -type f -name "*.tmp" -delete
+
+aiq list all installed packages on Ubuntu
+dpkg --get-selections
+
+aiq show current Git branch
+git branch --show-current
+
+aiq check disk space usage
+df -h
+
+aiq pick randomly from Chris H., Chris A. or Paul
+shuf -n 1 -e "Chris H." "Chris A." Paul | head -1
+
+aiq show me last modified 10 files
+ls -lt | head -n 10
+
+aiq what bitrate of aiq-demo-0001-1482.mp4
+ffmpeg -i aiq-demo-0001-1482.mp4 2>&1 | grep -i "bitrate"
+
+## User Input
+
 )" + userInput +
       "\n<|eot_id|>assistant\n";
 
