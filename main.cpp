@@ -151,6 +151,9 @@ ls -lt | head -n 10
 aiq what bitrate of aiq-demo-0001-1482.mp4
 ffmpeg -i aiq-demo-0001-1482.mp4 2>&1 | grep -i "bitrate"
 
+aiq unmangle the symbol _ZSt8_DestroyIPN4json3ValES1_EvT_S3_RSaIT0_E
+echo '_ZSt8_DestroyIPN4json3ValES1_EvT_S3_RSaIT0_E' | c++filt
+
 ## User Input
 
 )" + userInput +
