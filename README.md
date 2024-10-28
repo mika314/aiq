@@ -37,7 +37,17 @@
 
 ### Steps
 
-TBD
+```bash
+# Clone and compile build tool `coddle`
+git clone https://github.com/coddle-cpp/coddle.git && cd coddle && ./build.sh
+
+# Install `coddle`
+sudo ./deploy.sh
+cd ..
+
+# Go into the `aiq` directory and build it using coddle
+cd aiq && coddle
+```
 
 ---
 
@@ -46,8 +56,13 @@ TBD
 Simply type `aiq` followed by your natural language instruction:
 
 ```bash
-aiq <your instruction here>
+aiq [-m <model>] <your instruction here>
 ```
+
+If `-m <model>` is specified, the tool will use OpenAI models instead of
+the local LLaMA model. For OpenAI models, you can use the following
+models: `gpt-4o`, `gpt-4o-mini`, or `o1-preview`. Refer to the OpenAI
+documentation to get the full list of models.
 
 - The generated command will be inserted into your terminal, allowing you to review and execute it.
 - **Important**: Always review the generated command before executing it to ensure it does what you expect.
