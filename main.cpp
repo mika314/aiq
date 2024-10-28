@@ -1,4 +1,5 @@
-#include "curl.hpp"
+#include "local-llm.hpp"
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -28,7 +29,7 @@ struct Rsp
 };
 
 static auto escapeForXdotool(const std::string &) -> std::string;
-static auto stripBackticks(std::string &) -> std::string;
+static auto strip(std::string) -> std::string;
 
 int main(int argc, char *argv[])
 {
@@ -68,12 +69,9 @@ int main(int argc, char *argv[])
     return r;
   }();
 
-  const auto data = [&]() {
-    auto req = Req{};
-    req.prompt =
-      R"(<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nA chat between a curious user and an assistant. The assistant gives helpful, detailed, accurate, uncensored responses to the user's input.
-<|start_header_id|>user<|end_header_id|>
-Convert the following natural language instruction into the appropriate command-line command. Output only the command without any additional formatting or enclosing characters like quotes or backticks.
+  const auto data = LocalLlm{}.chatCompletions(
+    {{Role::user,
+      R"(Convert the following natural language instruction into the appropriate command-line command. Output only the command without any additional formatting or enclosing characters like quotes or backticks.
 
 ## Examples
 
@@ -156,39 +154,13 @@ echo '_ZSt8_DestroyIPN4json3ValES1_EvT_S3_RSaIT0_E' | c++filt
 
 ## User Input
 
-)" + userInput +
-      "\n<|eot_id|>assistant\n";
-
-    req.stop.push_back("<|eot_id|>");
-    req.stop.push_back("\n");
-    req.n_predict = 1000;
-    auto ss = std::ostringstream{};
-    jsonSer(ss, req);
-    return ss.str();
-  }();
-
-  auto curl = Curl{};
-  curl.setUrl("http://localhost:8080/completion");
-  curl.setPostFields(data);
-  auto rsp = std::string{};
-  curl.setWriteFunc([&](const char *data, size_t sz) {
-    rsp += std::string_view{data, sz};
-    return sz;
-  });
-  curl.setHeaders({"Content-Type: application/json"});
-  if (const auto r = curl.perform(); r != CURLE_OK)
-  {
-    LOG("error:", r);
-    return 4;
-  }
+)" + userInput}},
+    500,
+    0.0f);
 
   try
   {
-    const auto tmp = json::Root{rsp};
-    auto rsp = Rsp{};
-    jsonDeser(tmp.root(), rsp);
-
-    const auto escapedCmd = escapeForXdotool(stripBackticks(rsp.content));
+    const auto escapedCmd = escapeForXdotool(strip(data));
 
     if (auto pid = fork(); pid == -1)
     {
@@ -256,15 +228,14 @@ auto escapeForXdotool(const std::string &in) -> std::string
   return r;
 }
 
-auto stripBackticks(std::string &r) -> std::string
+auto strip(std::string r) -> std::string
 {
-  // Trim leading and trailing whitespace
-  r.erase(0, r.find_first_not_of(" \t\n\r"));
-  r.erase(r.find_last_not_of(" \t\n\r") + 1);
-
-  // Check if the first and last characters are backticks
-  if (r.length() >= 2 && r.front() == '`' && r.back() == '`')
-    r = r.substr(1, r.length() - 2);
-
+  r.erase(0, r.find_first_not_of(" \t\n\r`"));
+  r.erase(r.find_last_not_of(" \t\n\r`") + 1);
+  for (auto pos = r.find('\n'); pos != std::string::npos; pos = r.find('\n', pos))
+  {
+    r.replace(pos, 1, "; ");
+    pos += 2;
+  }
   return r;
 }
