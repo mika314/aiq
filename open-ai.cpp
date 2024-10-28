@@ -58,7 +58,7 @@ namespace OpenAi
     auto req = ChatCompletionsReq{.model = model};
     if (true)
     {
-      auto debug = std::ofstream("debug-llm.txt", std::ios::app);
+      auto debug = std::ofstream("/tmp/debug-llm.txt");
       debug << "request:\n";
       for (const auto &m : query)
         debug << toStr(m.first) << ": `" << m.second << "`" << std::endl;
@@ -113,7 +113,7 @@ namespace OpenAi
 
     if (true)
     {
-      auto debug = std::ofstream("debug-llm.txt", std::ios::app);
+      auto debug = std::ofstream("/tmp/debug-llm.txt", std::ios::app);
       debug << "response:\n";
       for (const auto &m : response.choices)
         debug << "`" << m.message.content << "`" << std::endl;

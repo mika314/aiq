@@ -1,8 +1,11 @@
+#include "chat-completions-query.hpp"
 #include "local-llm.hpp"
+#include "open-ai.hpp"
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <fstream>
 #include <iostream>
 #include <json-ser/json-ser.hpp>
 #include <json/json.hpp>
@@ -30,9 +33,26 @@ struct Rsp
 
 static auto escapeForXdotool(const std::string &) -> std::string;
 static auto strip(std::string) -> std::string;
+static auto getApiKey() -> std::string;
 
 int main(int argc, char *argv[])
 {
+  if (argc < 2)
+  {
+    LOG("Usage: aiq [-m <model>] <command description>");
+    return 3;
+  }
+
+  auto argOffset = 1;
+  const auto model = [&]() -> std::string {
+    if (argc > 2 && std::strcmp(argv[1], "-m") == 0)
+    {
+      argOffset = 3;
+      return argv[2];
+    }
+    return "";
+  }();
+
   if (system("command -v xdotool > /dev/null") != 0)
   {
     LOG("xdotool is not installed. Please install it to use this feature.");
@@ -52,26 +72,46 @@ int main(int argc, char *argv[])
     return 2;
   }
 
-  if (argc < 2)
-  {
-    LOG("Usage: aiq <command description>");
-    return 3;
-  }
-
   const auto userInput = [&]() {
     auto r = std::string{};
-    for (auto i = 1; i < argc; ++i)
+    for (auto i = argOffset; i < argc; ++i)
     {
-      if (i != 1)
+      if (i != argOffset)
         r += " ";
       r += argv[i];
     }
     return r;
   }();
 
-  const auto data = LocalLlm{}.chatCompletions(
-    {{Role::user,
-      R"(Convert the following natural language instruction into the appropriate command-line command. Output only the command without any additional formatting or enclosing characters like quotes or backticks.
+  const auto data =
+    !model.empty()
+      ? OpenAi::Client{getApiKey().c_str()}
+          .chatCompletions(
+            model,
+            {{Role::user,
+              R"(Convert the following natural language instruction into a single-line command-line command.
+Do not include any explanations, formatting characters, or additional text (such as backticks, `bash` labels, or comments).
+Output only the exact command as plain text.
+
+## Examples
+
+User Input: "set Git username to 'John Doe' and email to 'jdoe@example.com'"
+Output: git config user.name "John Doe"; git config user.email "jdoe@example.com"
+
+User Input: "list all files in the current directory"
+Output: ls
+
+User Input: "remove all .tmp files"
+Output: rm *.tmp
+
+## User Input
+
+)" + userInput}})
+          .choices[0]
+          .message.content
+      : LocalLlm{}.chatCompletions(
+          {{Role::user,
+            R"(Convert the following natural language instruction into the appropriate command-line command. Output only the command without any additional formatting or enclosing characters like quotes or backticks.
 
 ## Examples
 
@@ -155,8 +195,8 @@ echo '_ZSt8_DestroyIPN4json3ValES1_EvT_S3_RSaIT0_E' | c++filt
 ## User Input
 
 )" + userInput}},
-    500,
-    0.0f);
+          500,
+          0.0f);
 
   try
   {
@@ -196,11 +236,7 @@ echo '_ZSt8_DestroyIPN4json3ValES1_EvT_S3_RSaIT0_E' | c++filt
     }
     else
     {
-      // Parent process
-      // Do not wait for the child process
-      // Optionally, you can wait if you want
-      // int status;
-      // waitpid(pid, &status, 0);
+      // Parent process does not wait for child
     }
   }
   catch (std::runtime_error &e)
@@ -238,4 +274,25 @@ auto strip(std::string r) -> std::string
     pos += 2;
   }
   return r;
+}
+
+auto getApiKey() -> std::string
+{
+  const auto homeDir = std::getenv("HOME");
+  if (!homeDir)
+  {
+    LOG("HOME environment variable is not set.");
+    throw "HOME environment variable is not set.";
+  }
+
+  const auto apiKeyFilePath = std::string{homeDir} + "/.open-ai/key";
+  auto file = std::ifstream{apiKeyFilePath};
+  if (!file.is_open())
+  {
+    LOG("Error opening API key file at:", apiKeyFilePath);
+    throw "Error opening API key file";
+  }
+  auto apiKey = std::string{};
+  std::getline(file, apiKey);
+  return apiKey;
 }
